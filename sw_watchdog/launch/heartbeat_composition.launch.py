@@ -1,3 +1,7 @@
+#
+# Copyright (c) 2024 by Laza Medical.
+# All Rights Reserved.
+#
 # Copyright (c) 2020 Mapless AI, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,22 +18,22 @@
 
 """Launch a talker and a heartbeat in a component container."""
 
-import subprocess
 import os
+import subprocess  # nosec
 
-import launch
-from launch.actions import EmitEvent
-from launch.actions import LogInfo
-from launch.actions import RegisterEventHandler
-from launch.actions import OpaqueFunction
+import launch  # type: ignore
+from launch.actions import LogInfo  # type: ignore
+from launch.actions import OpaqueFunction, RegisterEventHandler
+from launch.event_handlers.on_shutdown import OnShutdown  # type: ignore
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
-from launch.event_handlers.on_shutdown import OnShutdown
+
 
 # Hack to cleanly exit all roslaunch group processes (docker init is GID 1)
 def group_stop(context, *args, **kwargs):
     gid = os.getpgid(os.getpid())
-    subprocess.call(['kill', '-INT', '--', f"-{gid}"])
+    subprocess.call(['kill', '-INT', '--', f'-{gid}'])
+
 
 def generate_launch_description():
     """Generate launch description with multiple components."""
@@ -56,9 +60,9 @@ def generate_launch_description():
     # When Shutdown is requested (launch), clean up all child processes
     shutdown_handler = RegisterEventHandler(
         OnShutdown(
-            on_shutdown = [
+            on_shutdown=[
                 # Log
-                LogInfo( msg = "heartbeat_composition was asked to shutdown." ),
+                LogInfo(msg='heartbeat_composition was asked to shutdown.'),
                 # Clean up
                 OpaqueFunction(function=group_stop),
             ],
