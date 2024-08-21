@@ -1,3 +1,7 @@
+#
+# Copyright (c) 2024 by Laza Medical.
+# All Rights Reserved.
+#
 # Status message for publishing lease expiry information of the watched entity.
 
 # Two-integer timestamp that is expressed as seconds and nanoseconds.

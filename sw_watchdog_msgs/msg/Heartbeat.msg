@@ -1,3 +1,7 @@
+#
+# Copyright (c) 2024 by Laza Medical.
+# All Rights Reserved.
+#
 # Heartbeat message that supports additional checkpoint information for
 # control flow monitoring on the receiver side.
 

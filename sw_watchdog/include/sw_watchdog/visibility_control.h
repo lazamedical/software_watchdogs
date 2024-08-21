@@ -1,3 +1,7 @@
+//
+// Copyright (c) 2024 by Laza Medical.
+// All Rights Reserved.
+//
 // Copyright (c) 2020 Mapless AI, Inc. Based on code that is
 // Copyright 2020 Open Source Robotics Foundation, Inc.
 //

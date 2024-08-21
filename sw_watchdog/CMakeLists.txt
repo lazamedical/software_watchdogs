@@ -1,3 +1,7 @@
+#
+# Copyright (c) 2024 by Laza Medical.
+# All Rights Reserved.
+#
 cmake_minimum_required(VERSION 3.5)
 project(sw_watchdog)
 
@@ -55,16 +59,16 @@ install(TARGETS
   RUNTIME DESTINATION bin
 )
 
-# if(BUILD_TESTING)
-#   find_package(ament_lint_auto REQUIRED)
-#   ament_lint_auto_find_test_dependencies()
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
 
 #   find_package(ros_testing REQUIRED)
 #   add_ros_test(
 #     test/test_watchdog.py
 #     TIMEOUT 60
 #   )
-# endif()
+endif()
 
 install(DIRECTORY
   launch

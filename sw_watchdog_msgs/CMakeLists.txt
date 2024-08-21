@@ -1,3 +1,7 @@
+#
+# Copyright (c) 2024 by Laza Medical.
+# All Rights Reserved.
+#
 cmake_minimum_required(VERSION 3.5)
 project(sw_watchdog_msgs)
 
