@@ -30,10 +30,6 @@
 #include "sw_watchdog_msgs/msg/status.hpp"
 #include "sw_watchdog/visibility_control.h"
 
-constexpr char OPTION_AUTO_START[] = "--activate";
-constexpr char OPTION_PUB_STATUS[] = "--publish";
-constexpr char DEFAULT_TOPIC_NAME[] = "heartbeat";
-
 namespace sw_watchdog
 {
 
@@ -50,12 +46,31 @@ class WindowedWatchdog : public rclcpp_lifecycle::LifecycleNode
 public:
   SW_WATCHDOG_PUBLIC
   explicit WindowedWatchdog(const rclcpp::NodeOptions &);
+
+  /**
+   * @brief Publish lease expiry of the watched entity
+   */
   void publish_status(uint16_t misses);
 
+  /**
+   * @brief Transition callback for state configuring
+   */
   NodeCallback on_configure(const rclcpp_lifecycle::State &);
+  /**
+   * @brief Transition callback for state activating
+   */
   NodeCallback on_activate(const rclcpp_lifecycle::State &);
+  /**
+   * @brief Transition callback for state deactivating
+   */
   NodeCallback on_deactivate(const rclcpp_lifecycle::State &);
+  /**
+   * @brief Transition callback for state cleaningup
+   */
   NodeCallback on_cleanup(const rclcpp_lifecycle::State &);
+  /**
+   * @brief Transition callback for state shutting down
+   */
   NodeCallback on_shutdown(const rclcpp_lifecycle::State & state);
 
 private:

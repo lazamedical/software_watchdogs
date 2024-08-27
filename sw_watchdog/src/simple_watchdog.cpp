@@ -33,6 +33,10 @@
 #include "sw_watchdog/visibility_control.h"
 #include "sw_watchdog/simple_watchdog.hpp"
 
+constexpr char OPTION_AUTO_START[] = "--activate";
+constexpr char OPTION_PUB_STATUS[] = "--publish";
+constexpr char DEFAULT_TOPIC_NAME[] = "heartbeat";
+
 namespace
 {
 
@@ -91,7 +95,6 @@ SimpleWatchdog::SimpleWatchdog(const rclcpp::NodeOptions & options)
   }
 }
 
-/// Publish lease expiry of the watched entity
 void SimpleWatchdog::publish_status()
 {
   auto msg = std::make_unique<sw_watchdog_msgs::msg::Status>();
@@ -114,7 +117,6 @@ void SimpleWatchdog::publish_status()
   status_pub_->publish(std::move(msg));
 }
 
-/// Transition callback for state configuring
 NodeCallback SimpleWatchdog::on_configure(
   const rclcpp_lifecycle::State &)
 {
@@ -146,7 +148,6 @@ NodeCallback SimpleWatchdog::on_configure(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state activating
 NodeCallback SimpleWatchdog::on_activate(
   const rclcpp_lifecycle::State &)
 {
@@ -170,7 +171,6 @@ NodeCallback SimpleWatchdog::on_activate(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state deactivating
 NodeCallback SimpleWatchdog::on_deactivate(
   const rclcpp_lifecycle::State &)
 {
@@ -187,7 +187,6 @@ NodeCallback SimpleWatchdog::on_deactivate(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state cleaningup
 NodeCallback SimpleWatchdog::on_cleanup(
   const rclcpp_lifecycle::State &)
 {
@@ -196,8 +195,7 @@ NodeCallback SimpleWatchdog::on_cleanup(
 
   return NodeCallback::SUCCESS;
 }
-
-/// Transition callback for state shutting down
+  
 NodeCallback SimpleWatchdog::on_shutdown(
   const rclcpp_lifecycle::State & state)
 {

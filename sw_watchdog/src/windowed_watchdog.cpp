@@ -33,6 +33,10 @@
 #include "sw_watchdog/visibility_control.h"
 #include "sw_watchdog/windowed_watchdog.hpp"
 
+constexpr char OPTION_AUTO_START[] = "--activate";
+constexpr char OPTION_PUB_STATUS[] = "--publish";
+constexpr char DEFAULT_TOPIC_NAME[] = "heartbeat";
+
 namespace
 {
 
@@ -94,7 +98,6 @@ WindowedWatchdog::WindowedWatchdog(const rclcpp::NodeOptions & options)
   }
 }
 
-/// Publish lease expiry of the watched entity
 void WindowedWatchdog::publish_status(uint16_t misses)
 {
   auto msg = std::make_unique<sw_watchdog_msgs::msg::Status>();
@@ -117,7 +120,6 @@ void WindowedWatchdog::publish_status(uint16_t misses)
   status_pub_->publish(std::move(msg));
 }
 
-/// Transition callback for state configuring
 NodeCallback WindowedWatchdog::on_configure(
   const rclcpp_lifecycle::State &)
 {
@@ -166,7 +168,6 @@ NodeCallback WindowedWatchdog::on_configure(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state activating
 NodeCallback WindowedWatchdog::on_activate(
   const rclcpp_lifecycle::State &)
 {
@@ -191,7 +192,6 @@ NodeCallback WindowedWatchdog::on_activate(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state deactivating
 NodeCallback WindowedWatchdog::on_deactivate(
   const rclcpp_lifecycle::State &)
 {
@@ -208,7 +208,6 @@ NodeCallback WindowedWatchdog::on_deactivate(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state cleaningup
 NodeCallback WindowedWatchdog::on_cleanup(
   const rclcpp_lifecycle::State &)
 {
@@ -218,7 +217,6 @@ NodeCallback WindowedWatchdog::on_cleanup(
   return NodeCallback::SUCCESS;
 }
 
-/// Transition callback for state shutting down
 NodeCallback WindowedWatchdog::on_shutdown(
   const rclcpp_lifecycle::State & state)
 {
