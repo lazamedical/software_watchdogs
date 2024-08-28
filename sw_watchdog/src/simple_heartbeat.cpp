@@ -95,7 +95,7 @@ void SimpleHeartbeat::timer_callback()
 {
   auto message = sw_watchdog_msgs::msg::Heartbeat();
   rclcpp::Time now = this->get_clock()->now();
-  message.stamp = now;
+  message.header.stamp = now;
   RCLCPP_INFO(this->get_logger(), "Publishing heartbeat, sent at [%f]", now.seconds());
   publisher_->publish(message);
 }

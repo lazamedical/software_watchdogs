@@ -176,7 +176,8 @@ NodeCallback WindowedWatchdog::on_activate(
       topic_name_,
       qos_profile_,
       [this](const typename sw_watchdog_msgs::msg::Heartbeat::SharedPtr msg) -> void {
-        RCLCPP_INFO(get_logger(), "Watchdog raised, heartbeat sent at [%d.x]", msg->stamp.sec);
+        RCLCPP_INFO(
+          get_logger(), "Watchdog raised, heartbeat sent at [%d.x]", msg->header.stamp.sec);
         lease_misses_ = 0;
       },
       heartbeat_sub_options_);

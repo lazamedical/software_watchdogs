@@ -47,8 +47,10 @@ public:
 
   /**
    * @brief Publish lease expiry of the watched entity
+   *
+   * @param[in] misses Number of missed heartbeats
    */
-  void publish_status();
+  void publish_status(u_int misses);
 
   /**
    * @brief Transition callback for state configuring
@@ -86,6 +88,7 @@ private:
   bool enable_pub_;
   /// Topic name for heartbeat signal by the watched entity
   const std::string topic_name_;
+  const std::string status_topic_name_ = "~/status";
   rclcpp::QoS qos_profile_;
   rclcpp::SubscriptionOptions heartbeat_sub_options_;
 };
