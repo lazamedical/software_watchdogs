@@ -20,6 +20,8 @@ find_package(lifecycle_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sw_watchdog_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 
 include_directories(
@@ -32,13 +34,16 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED
   src/simple_heartbeat.cpp
   src/simple_watchdog.cpp
-  src/windowed_watchdog.cpp)
+  src/windowed_watchdog.cpp
+  src/watchdog_monitor.cpp)
 ament_target_dependencies(${PROJECT_NAME}
   "rclcpp"
   "rclcpp_lifecycle"
   "rclcpp_components"
   "rcutils"
   "sw_watchdog_msgs"
+  "std_srvs"
+  "std_msgs"
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE "SW_WATCHDOG_BUILDING_DLL")
@@ -51,6 +56,9 @@ rclcpp_components_register_node(${PROJECT_NAME}
 rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "sw_watchdog::WindowedWatchdog"
   EXECUTABLE windowed_watchdog)
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "sw_watchdog::WatchdogMonitor"
+  EXECUTABLE watchdog_monitor)
 
 install(TARGETS
   ${PROJECT_NAME}

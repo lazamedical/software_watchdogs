@@ -95,12 +95,13 @@ SimpleWatchdog::SimpleWatchdog(const rclcpp::NodeOptions & options)
   }
 }
 
-void SimpleWatchdog::publish_status()
+void SimpleWatchdog::publish_status(u_int misses)
 {
   auto msg = std::make_unique<sw_watchdog_msgs::msg::Status>();
   rclcpp::Time now = this->get_clock()->now();
   msg->stamp = now;
-  msg->missed_number = 1;
+  msg->missed_number = misses;
+  msg->sender = this->get_fully_qualified_name();
 
   // Print the current state for demo purposes
   if (!status_pub_->is_activated()) {
@@ -133,15 +134,17 @@ NodeCallback SimpleWatchdog::on_configure(
       printf("  alive_count_change: %d\n", event.alive_count_change);
       printf("  not_alive_count_change: %d\n", event.not_alive_count_change);
       if (event.alive_count == 0) {
-        publish_status();
+        publish_status(1);
         // Transition lifecycle to deactivated state
         deactivate();
+      } else {
+        publish_status(0);
       }
     };
 
   if (enable_pub_) {
     // QoS history_depth
-    status_pub_ = create_publisher<sw_watchdog_msgs::msg::Status>("status", 1);
+    status_pub_ = create_publisher<sw_watchdog_msgs::msg::Status>(status_topic_name_, 1);
   }
 
   RCUTILS_LOG_INFO_NAMED(get_name(), "on_configure() is called.");
@@ -156,7 +159,8 @@ NodeCallback SimpleWatchdog::on_activate(
       topic_name_,
       qos_profile_,
       [this](const typename sw_watchdog_msgs::msg::Heartbeat::SharedPtr msg) -> void {
-        RCLCPP_INFO(get_logger(), "Watchdog raised, heartbeat sent at [%d.x]", msg->stamp.sec);
+        RCLCPP_INFO(
+          get_logger(), "Watchdog raised, heartbeat sent at [%d.x]", msg->header.stamp.sec);
       },
       heartbeat_sub_options_);
   }
@@ -195,7 +199,7 @@ NodeCallback SimpleWatchdog::on_cleanup(
 
   return NodeCallback::SUCCESS;
 }
-  
+
 NodeCallback SimpleWatchdog::on_shutdown(
   const rclcpp_lifecycle::State & state)
 {
