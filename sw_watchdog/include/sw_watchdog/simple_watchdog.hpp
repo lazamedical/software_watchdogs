@@ -82,10 +82,14 @@ private:
   /// Publish lease expiry for the watched entity
   // By default, a lifecycle publisher is inactive by creation and has to be activated to publish.
   std::shared_ptr<statusPubType> status_pub_ = nullptr;
-  /// Whether to enable the watchdog on startup. Otherwise, lifecycle transitions have to be raised
+  /// Whether to enable the watchdog on startup.
+  /// Otherwise, lifecycle transitions have to be raised
   bool autostart_;
   /// Whether a lease expiry should be published
   bool enable_pub_;
+  /// False deactivates the watchdog when the heartbeat fails. True
+  /// allows the watchdog to automatically resubscribe to a heartbeat.
+  bool keep_active_ = false;
   /// Topic name for heartbeat signal by the watched entity
   const std::string topic_name_;
   const std::string status_topic_name_ = "~/status";

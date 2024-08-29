@@ -69,7 +69,27 @@ install(TARGETS
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+
   ament_lint_auto_find_test_dependencies()
+
+  ament_add_gtest(${PROJECT_NAME}_heartbeat_test test/heartbeat_test.cpp)
+  ament_add_gtest(${PROJECT_NAME}_watchdog_test test/watchdog_test.cpp)
+  ament_add_gtest(${PROJECT_NAME}_watchdog_monitor_test test/watchdog_monitor_test.cpp)
+  ament_add_gtest(${PROJECT_NAME}_windowed_watchdog_test test/windowed_watchdog_test.cpp)
+
+  target_link_libraries(${PROJECT_NAME}_heartbeat_test
+    sw_watchdog
+  )
+  target_link_libraries(${PROJECT_NAME}_watchdog_test
+    sw_watchdog
+  )
+  target_link_libraries(${PROJECT_NAME}_watchdog_monitor_test
+    sw_watchdog
+  )
+  target_link_libraries(${PROJECT_NAME}_windowed_watchdog_test
+    sw_watchdog
+  )
 
 #   find_package(ros_testing REQUIRED)
 #   add_ros_test(
