@@ -35,6 +35,7 @@
 
 constexpr char OPTION_AUTO_START[] = "--activate";
 constexpr char OPTION_PUB_STATUS[] = "--publish";
+constexpr char OPTION_KEEP_ACTIVE[] = "--keep-active";
 constexpr char DEFAULT_TOPIC_NAME[] = "heartbeat";
 
 namespace
@@ -51,6 +52,8 @@ void print_usage()
     "\t" << OPTION_AUTO_START << ": Start the watchdog on creation.  Defaults to false.\n"
     "\t" << OPTION_PUB_STATUS << ": Publish lease expiration of the watched entity.  "
     "Defaults to false.\n"
+    "\t" << OPTION_KEEP_ACTIVE << ": Keep the watchdog active, so that it automatically "
+    "resubscribes to heartbeats. Default to false.\n"
     "\t-h : Print this help message." <<
     std::endl;
 }
@@ -90,6 +93,9 @@ WindowedWatchdog::WindowedWatchdog(const rclcpp::NodeOptions & options)
   }
   if (rcutils_cli_option_exist(&cargs[0], &cargs[0] + cargs.size(), OPTION_PUB_STATUS)) {
     enable_pub_ = true;
+  }
+  if (rcutils_cli_option_exist(&cargs[0], &cargs[0] + cargs.size(), OPTION_KEEP_ACTIVE)) {
+    keep_active_ = true;
   }
 
   if (autostart_) {
@@ -137,8 +143,8 @@ NodeCallback WindowedWatchdog::on_configure(
         std::memory_order_relaxed);
 
       publish_status(lease_misses_);
-      // Transition lifecycle to deactivated state
-      if (lease_misses_ >= max_misses_) {
+      // Transition lifecycle to deactivated state if not keep_active
+      if (lease_misses_ >= max_misses_ && !keep_active_) {
         deactivate();
       }
     };
@@ -154,8 +160,10 @@ NodeCallback WindowedWatchdog::on_configure(
       printf("  not_alive_count_change: %d\n", event.not_alive_count_change);
       if (event.alive_count == 0) {
         publish_status(max_misses_);
-        // Transition lifecycle to deactivated state
-        deactivate();
+        // Transition lifecycle to deactivated state if not keep_active
+        if (!keep_active_) {
+          deactivate();
+        }
       }
     };
 

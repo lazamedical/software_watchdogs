@@ -25,7 +25,7 @@ def generate_launch_description() -> launch.LaunchDescription:
         package='sw_watchdog',
         executable='watchdog_monitor',
         name='watchdog_monitor',
-        parameters=[{'nodes_list': ['/node/watchdog']}],
+        parameters=[{'nodes_list': ['/node_a/watchdog', '/node_b/watchdog']}],
     )
 
     return launch.LaunchDescription([watchdog_monitor])

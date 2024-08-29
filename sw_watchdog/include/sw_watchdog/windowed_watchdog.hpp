@@ -86,6 +86,9 @@ private:
   bool autostart_;
   /// Whether a lease expiry should be published
   bool enable_pub_;
+  /// False deactivates the watchdog when the heartbeat fails. True
+  /// allows the watchdog to automatically resubscribe to a heartbeat.
+  bool keep_active_ = false;
   /// Topic name for heartbeat signal by the watched entity
   const std::string topic_name_;
   /// The number of lease misses since the last heartbeat was received
