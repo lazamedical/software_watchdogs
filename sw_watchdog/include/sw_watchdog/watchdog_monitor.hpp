@@ -27,6 +27,7 @@
 #include "std_srvs/srv/trigger.hpp"
 
 #include "rclcpp/rclcpp.hpp"
+#include "diagnostic_updater/diagnostic_updater.hpp"
 
 namespace sw_watchdog
 {
@@ -41,6 +42,13 @@ public:
 private:
   typedef rclcpp::Publisher<std_msgs::msg::Bool> statusPubType;
   typedef rclcpp::Subscription<sw_watchdog_msgs::msg::Status> statusSubType;
+
+  /**
+   * @brief Diagnostic task to report the current overall status of Watchdogs
+   *
+   * @param[out] stat Reference to object that needs to be filled with summary of the reported state
+   */
+  void diagnostic_status(diagnostic_updater::DiagnosticStatusWrapper & stat);
 
   /**
    * @brief Get the current overall status of all Watchdogs
@@ -89,6 +97,9 @@ private:
   std::shared_ptr<statusPubType> status_pub_ = nullptr;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr get_status_server_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr bringup_server_;
+
+  // Diagnostic
+  std::unique_ptr<diagnostic_updater::Updater> updater_;
 };
 }  // namespace sw_watchdog
 
