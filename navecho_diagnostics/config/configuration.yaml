@@ -1,0 +1,26 @@
+#
+# Copyright (c) 2024 by Laza Medical.
+# All Rights Reserved.
+#
+---
+analyzers:
+  ros__parameters:
+    path: Supervisor
+    monitor:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: WatchdogMonitor
+      contains: ['WatchdogMonitor']
+    heartbeat:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: Heartbeats
+      contains: ['heartbeat']
+    hw_mon:
+      type: diagnostic_aggregator/GenericAnalyzer
+      path: HardwareMonitor
+      contains: [
+        'cpu_monitor',
+        'hdd_monitor',
+        'mem_monitor',
+        'net_monitor',
+        'ntp_monitor'
+      ]

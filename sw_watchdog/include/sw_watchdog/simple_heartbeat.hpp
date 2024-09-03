@@ -24,6 +24,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sw_watchdog/visibility_control.h"
 #include "sw_watchdog_msgs/msg/heartbeat.hpp"
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "diagnostic_updater/publisher.hpp"
 
 namespace sw_watchdog
 {
@@ -42,10 +44,21 @@ public:
   explicit SimpleHeartbeat(rclcpp::NodeOptions options);
 
 private:
+  typedef diagnostic_updater::DiagnosedPublisher<sw_watchdog_msgs::msg::Heartbeat> diag_pub_type;
   void timer_callback();
 
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<sw_watchdog_msgs::msg::Heartbeat>::SharedPtr publisher_;
+
+  // Diagnostic
+  std::unique_ptr<diagnostic_updater::Updater> updater_;
+  std::unique_ptr<diag_pub_type> diag_pub_;
+
+  // Diagnostics updater minimum frequency
+  double diag_updater_min_freq_{4.95};
+
+  // Diagnostics updater maximum frequency
+  double diag_updater_max_freq_{5.5};
 };
 }  // namespace sw_watchdog
 

@@ -22,7 +22,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(sw_watchdog_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(std_msgs REQUIRED)
-
+find_package(diagnostic_updater)
 
 include_directories(
   include
@@ -44,6 +44,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "sw_watchdog_msgs"
   "std_srvs"
   "std_msgs"
+  "diagnostic_updater"
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE "SW_WATCHDOG_BUILDING_DLL")

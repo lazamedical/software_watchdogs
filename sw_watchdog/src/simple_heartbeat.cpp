@@ -82,11 +82,23 @@ SimpleHeartbeat::SimpleHeartbeat(rclcpp::NodeOptions options)
   .liveliness_lease_duration(heartbeat_period + LEASE_DELTA)
   .deadline(heartbeat_period + LEASE_DELTA);
 
+  // assert liveliness on the 'heartbeat' topic with diagnostics
+  updater_ = std::make_unique<diagnostic_updater::Updater>(this);
+  updater_->setHardwareID(this->get_fully_qualified_name());
+
+  diagnostic_updater::FrequencyStatusParam freq_param(
+    &diag_updater_min_freq_, &diag_updater_max_freq_, 0.01, 2);
+
   // assert liveliness on the 'heartbeat' topic
   publisher_ = this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>(
     "heartbeat",
     qos_profile
   );
+
+  diag_pub_ = std::make_unique<diag_pub_type>(
+    publisher_, *updater_, freq_param,
+    diagnostic_updater::TimeStampStatusParam());
+
   timer_ = this->create_wall_timer(heartbeat_period,
     std::bind(&SimpleHeartbeat::timer_callback, this));
 }
@@ -97,7 +109,7 @@ void SimpleHeartbeat::timer_callback()
   rclcpp::Time now = this->get_clock()->now();
   message.header.stamp = now;
   RCLCPP_INFO(this->get_logger(), "Publishing heartbeat, sent at [%f]", now.seconds());
-  publisher_->publish(message);
+  diag_pub_->publish(message);
 }
 
 }  // namespace sw_watchdog

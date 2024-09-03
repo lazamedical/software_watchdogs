@@ -17,6 +17,7 @@
   <build_depend>lifecycle_msgs</build_depend>
   <build_depend>rclcpp_lifecycle</build_depend>
   <build_depend>sw_watchdog_msgs</build_depend>
+  <build_depend>diagnostic_updater</build_depend>
 
   <exec_depend>rclcpp_lifecycle</exec_depend>
   <exec_depend>lifecycle_msgs</exec_depend>

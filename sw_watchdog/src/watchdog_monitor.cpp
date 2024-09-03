@@ -17,6 +17,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 
+#include "diagnostic_updater/diagnostic_updater.hpp"
+#include "diagnostic_updater/publisher.hpp"
+
 #include "sw_watchdog_msgs/msg/status.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -65,6 +68,31 @@ WatchdogMonitor::WatchdogMonitor(rclcpp::NodeOptions options)
   bringup_server_ = this->create_service<std_srvs::srv::Trigger>(
     bringup_serv_name_,
     std::bind(&WatchdogMonitor::bringup_handler, this, _1, _2, _3));
+
+  // Set up and initialize the diagnostics
+  updater_ = std::make_unique<diagnostic_updater::Updater>(this);
+  updater_->setHardwareID("WatchdogMonitor");
+
+  updater_->add("Status reporter", this, &WatchdogMonitor::diagnostic_status);
+}
+
+void WatchdogMonitor::diagnostic_status(diagnostic_updater::DiagnosticStatusWrapper & stat)
+{
+  bool current_status = get_current_status();
+
+  if (current_status) {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::OK,
+      "All Watchdogs receive heartbeats from their corresponding nodes.");
+  } else {
+    stat.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
+      "One or more monitoring nodes are not responding with heartbeats!");
+  }
+
+  stat.name = "/WatchdogMonitor/Status";
+
+  stat.add("Current overall status", current_status);
 }
 
 /**
