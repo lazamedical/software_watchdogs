@@ -2,7 +2,7 @@
 # Copyright (c) 2024 by Laza Medical.
 # All Rights Reserved.
 #
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(sw_watchdog)
 
 # Default to C++14
@@ -37,14 +37,14 @@ add_library(${PROJECT_NAME} SHARED
   src/windowed_watchdog.cpp
   src/watchdog_monitor.cpp)
 ament_target_dependencies(${PROJECT_NAME}
-  "rclcpp"
-  "rclcpp_lifecycle"
-  "rclcpp_components"
-  "rcutils"
-  "sw_watchdog_msgs"
-  "std_srvs"
-  "std_msgs"
-  "diagnostic_updater"
+  rclcpp
+  rclcpp_lifecycle
+  rclcpp_components
+  rcutils
+  sw_watchdog_msgs
+  std_srvs
+  std_msgs
+  diagnostic_updater
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE "SW_WATCHDOG_BUILDING_DLL")

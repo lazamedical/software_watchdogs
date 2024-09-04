@@ -77,7 +77,7 @@ private:
   typedef rclcpp_lifecycle::LifecyclePublisher<sw_watchdog_msgs::msg::Status> statusPubType;
 
   /// The lease duration granted to the remote (heartbeat) publisher
-  std::chrono::milliseconds lease_duration_;
+  std::chrono::nanoseconds lease_duration_;
   rclcpp::Subscription<sw_watchdog_msgs::msg::Heartbeat>::SharedPtr heartbeat_sub_ = nullptr;
   /// Publish lease expiry for the watched entity
   // By default, a lifecycle publisher is inactive by creation and has to be activated to publish.
@@ -92,11 +92,11 @@ private:
   /// Topic name for heartbeat signal by the watched entity
   const std::string topic_name_;
   /// The number of lease misses since the last heartbeat was received
-  std::atomic<uint16_t> lease_misses_;
+  uint16_t lease_misses_;
   /// The maximum number of lease misses granted to the watched entity
   uint16_t max_misses_;
-  rclcpp::QoS qos_profile_;
-  rclcpp::SubscriptionOptions heartbeat_sub_options_;
+  rclcpp::Time last_heartbeat_{0};
+  rclcpp::TimerBase::SharedPtr timer_;
 };
 }  // namespace sw_watchdog
 

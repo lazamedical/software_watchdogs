@@ -2,7 +2,7 @@
 # Copyright (c) 2024 by Laza Medical.
 # All Rights Reserved.
 #
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(sw_watchdog_msgs)
 
 # Default to C++14

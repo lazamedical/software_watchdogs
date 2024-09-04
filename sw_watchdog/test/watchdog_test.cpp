@@ -31,11 +31,11 @@ public:
   TestPublisher()
   : Node("generic_node") {}
 
-  void sendHeartbeat(sw_watchdog_msgs::msg::Heartbeat messageContent, rclcpp::QoS qos)
+  void sendHeartbeat(sw_watchdog_msgs::msg::Heartbeat messageContent)
   {
     if (!HeartbeatPublisher) {
       HeartbeatPublisher =
-        this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>("heartbeat", qos);
+        this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>("heartbeat", 1);
     }
 
     HeartbeatPublisher->publish(messageContent);
@@ -134,18 +134,13 @@ TEST_P(WatchdogTest, BeatingTest)
 
   message.header.stamp = tester->get_clock()->now();
 
-  rclcpp::QoS qos_profile(1);
-  qos_profile
-  .liveliness(RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC)
-  .liveliness_lease_duration(std::chrono::milliseconds(100));
+  tester->sendHeartbeat(message);
 
-  tester->sendHeartbeat(message, qos_profile);
-
-  for (int i = 0; i < 20; ++i) {
-    testing::internal::CaptureStdout();
-    executor.spin_some();
-    if (testing::internal::GetCapturedStdout()
-      .find("Reader Liveliness changed event") != std::string::npos)
+  for (int i = 0; i < 50; ++i) {
+    testing::internal::CaptureStderr();
+    executor.spin_once(std::chrono::milliseconds(100));
+    if (testing::internal::GetCapturedStderr()
+      .find("Publishing lease expiry (missed count: 0)") != std::string::npos)
     {
       expectedStateReached = true;
       break;
@@ -157,9 +152,9 @@ TEST_P(WatchdogTest, BeatingTest)
 
   message.header.stamp = tester->get_clock()->now();
 
-  tester->sendHeartbeat(message, qos_profile);
+  tester->sendHeartbeat(message);
 
-  for (int i = 0; i < 20; ++i) {
+  for (int i = 0; i < 50; ++i) {
     testing::internal::CaptureStderr();
     executor.spin_some();
     if (testing::internal::GetCapturedStderr()
