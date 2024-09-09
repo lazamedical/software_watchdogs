@@ -3,25 +3,30 @@
 [![License](https://img.shields.io/badge/License-Apache%202-blue.svg)](https://github.com/micro-ROS/system_modes/blob/master/LICENSE)
 [![Build status](https://github.com/ros-safety/software_watchdogs/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/ros-safety/software_watchdogs/actions)
 
-A library of (software) watchdogs based on DDS Quality of Service (QoS) policies and ROS 2 [lifecycle nodes](https://github.com/ros2/demos/blob/master/lifecycle/README.rst).
+A library of (software) watchdogs based on timer and ROS 2 [lifecycle nodes](https://github.com/ros2/demos/blob/master/lifecycle/README.rst). This implementation is ready to be used in [Zenoh RMW](https://github.com/ros2/rmw_zenoh) environment.
 
 This package includes a heartbeat node that can be added easily to an existing process via ROS 2 [node composition](https://index.ros.org/doc/ros2/Tutorials/Composition/).
 
 ## Overview
 
-This package includes two watchdog implementations (*"readers"*) and a heartbeat node (a *"writer"*). A watchdog expects a heartbeat signal at the specified frequency and otherwise declares the *writer* to have failed. A failure results in the watchdog's life cycle [state machine](https://design.ros2.org/articles/node_lifecycle.html) to transition to the `Inactive` state along with emitting the corresponding state transition event. A system-level response can be implemented in the event handler to realize patterns such as cold standby, process restarts, *etc.*
+This package includes two watchdog implementations (*"readers"*) and a heartbeat node (a *"writer"*). A watchdog expects a heartbeat signal at the specified frequency and otherwise declares the *writer* to have failed. A failure results in the watchdog's life cycle [state machine](https://design.ros2.org/articles/node_lifecycle.html) to transition to the `Inactive` state along with emitting the corresponding state transition event. A system-level response can be implemented in the event handler to realize patterns such as cold standby, process restarts, *etc.*. The transition to `Inactive` state can be avoided by setting the *"--keep-active"* option. Then the watchdog only publishes the updated status without transition to `Inactive` state.
 
-* `SimpleWatchdog` declares the monitored topic as failed after a violation of the granted *lease* time. The implementation relies on the QoS liveliness policy provided by the `rmw` implementation.
-* `WindowedWatchdog` declares the monitored topic as failed after the specified maximum number of *lease* violations. The implementation relies on the QoS liveliness and deadline policies provided by the `rmw` implementation.
-* `SimpleHeartbeat` publishes a heartbeat signal at the specified frequency. The heartbeat signal asserts liveliness manually to the listening watchdog.
+Multiple heartbeats can monitor multiple nodes or layers of the system SW. Then multiple watchdogs are started to monitor corresponding heartbeats. In this case the watchdog monitor node can be used to monitor the health of whole system. Watchdog monitor publishes the status every time any watchdog state is changed (missed heartbeat or received first heartbeat). The service for getting the current status can be used as well to get the most up-to-date information about the whole system. Watchdog monitor needs to be configured with the list of monitored nodes (ROS2 parameter "nodes_list").
+
+Diagnostics part of this package monitors the frequency of heartbeats using [ROS2 Diagnostics](https://github.com/ros/diagnostics/tree/ros2) and the system-level state. The frequency boundaries are calculated from desired frequency of heartbeat set in `period` ROS2 parameter.
+
+* `SimpleWatchdog` declares the monitored topic as failed after a violation of the granted *lease* time. The implementation checks 10 times per lease time for received heartbeat.
+* `WindowedWatchdog` declares the monitored topic as failed after the specified maximum number of *lease* violations. The implementation checks 10 times per lease time for received heartbeat.
+* `SimpleHeartbeat` publishes a heartbeat signal at the specified frequency.
+* `WatchdogMonitor` monitores the specified watchdogs. Once any of watchdog changes its state (first heartbeat or missed heartbeat) it publishes the state of whole system by topic. It can be prompted for the most current state of the system by service.
 
 ## Usage
 
-The launch files included in this package demonstrate both node composition with a heartbeat signal and the configuration of a corresponding watchdog.
+The launch files included in this package demonstrate both node composition with a heartbeat signal and the configuration of a corresponding watchdog. Heartbeat_diagnostics package contains the launch file for diagnostics aggregator.
 
-If you wish to use an `rmw`implementation other than the default, set the `RMW_IMPLEMENTATION` environment variable appropriately in all shells that you are using ROS in.
+This implementation does not dependen on `rmw`.
 
-Then start the heartbeat and watchdog examples in separate terminals:
+Start the heartbeat and watchdog examples in separate terminals:
 ```
 ros2 launch sw_watchdog heartbeat_composition.launch.py
 ros2 launch sw_watchdog watchdog_lifecycle.launch.py
@@ -38,14 +43,25 @@ ros2 launch sw_watchdog windowed_watchdog_lifecycle.launch.py
 ```
 This grants the Heartbeat publisher a maximum of three deadline misses. Deadline misses can be tested by inserting artificial delays in the publishing thread, for example.
 
-It is important that compatible *lease times* are configured for the Heartbeat signal and the watchdog. DDS does not establish a connection when incompatible QoS times are chosen (Cyclone and Connext DDS additionally display a warning message when this is the case):
-* The liveliness lease time specified for the watchdog should be `>=` than that specified for the Heartbeat publisher.
+To test the diagnostics start the aggregator in separate terminal (while running at least heartbeat):
+```
+ros2 launch heartbeat_diagnostics diagnostics.launch.py
+```
+This starts the diagnostics aggregator what will monitor the heartbeat frequency. The watchdog monitor will be always in "stale" state, because it is not running now. The tool `rqt` can be started to see the diagnostics messages. Open the plugin named `Diagnostics viewer`.
+
+To test whole system with the watchdog monitor start this single launch file to bring up 2 nodes monitored by heartbeats, 2 corresponding watchdogs and the watchdog monitor to monitor them.
+```
+ros2 launch sw_watchdog_test watchdog_test.launch.py
+```
+To run the diagnostics start the aggregator in separate terminal:
+```
+ros2 launch heartbeat_diagnostics diagnostics.launch.py
+```
+This starts the diagnostics aggregator what will monitor the heartbeat frequency and the status of the whole system. 
 
 ## Requirements
 
 This package includes custom messages.
-If you are compiling it from source and wish to use a non-default `rmw` implementation, you must have the appropriate `rmw` packages installed when you compile this package.
-See [Install DDS implementations](https://index.ros.org/doc/ros2/Installation/DDS-Implementations/) for more information on installing alternative `rmw` implementations.
 
 To use the `heartbeat_composition.launch.py` example, the `ros-*-demo-nodes-cpp` must be installed.
 
@@ -53,23 +69,9 @@ To use the `heartbeat_composition.launch.py` example, the `ros-*-demo-nodes-cpp`
 
 This code is built and tested under:
 
-* [ROS 2 Rolling Ridley](https://index.ros.org/doc/ros2/Installation/Rolling/) with [Ubuntu 20.04](http://releases.ubuntu.com/20.04/)
-
-The following DDS `rmw` [implementations](https://index.ros.org/doc/ros2/Concepts/DDS-and-ROS-middleware-implementations/) were tested in both environments (via the default Ubuntu packages that ship with the Rolling releases):
-* [Fast DDS](https://www.eprosima.com/index.php/products-all/eprosima-fast-dds)
-  _**Note:** In Dashing you must use Fast DDS, rather than the default Fast RTPS (which is a prior version of Fast DDS). Fast RTPS does not implement QoS._
-* [Connext DDS](https://www.rti.com/products/) v5.3.1
-* [Cyclone DDS](https://projects.eclipse.org/projects/iot.cyclonedds)
-  _**Note:** In order to be compatible with the `WindowedWatchdog`, the liveliness lease duration (not deadline) configured for the Heartbeat publisher has to account for the number of permitted violations on the watchdog (reader) side! E.g., if the watchdog is configured for a lease of *220ms* with *3* violations, the heartbeat should be set to a liveliness lease duration of (at least) *3 x 220ms* (requires a manual patch). Otherwise, the watchdog will declare the monitored node as failed immediately after the first lease violation._
-
-## TODO
-
-The `Heartbeat` message defined in this package supports the notion of *checkpoints*. Future watchdog versions could add support for control flow monitoring based on this information.
-
-## Contact
-
-For any questions or comments, please post a question at [ROS Answers](http://answers.ros.org/questions) following the [ROS support guidelines](http://wiki.ros.org/Support).
-[Add the `safety_wg` tag](https://answers.ros.org/questions/ask/?tags=safety_wg) to your question and someone from the Safety working group will spot it more easily.
+* [ROS 2 Jazzy Jalisco](https://docs.ros.org/en/jazzy/index.html) with [Ubuntu 24.04](http://releases.ubuntu.com/24.04/).
+* Default DDS rmw
+* Zenoh rmw
 
 # Copyright
 

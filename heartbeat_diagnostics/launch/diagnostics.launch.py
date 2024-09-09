@@ -14,7 +14,7 @@ def generate_launch_description() -> LaunchDescription:
     """Generate launch description."""
     diag_config_path = PathJoinSubstitution(
         [
-            FindPackageShare('navecho_diagnostics'),
+            FindPackageShare('heartbeat_diagnostics'),
             'config',
             'configuration.yaml',
         ]

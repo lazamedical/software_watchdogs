@@ -67,6 +67,13 @@ SimpleHeartbeat::SimpleHeartbeat(rclcpp::NodeOptions options)
   std::chrono::milliseconds heartbeat_period = DEFAULT_PERIOD;
   try {
     heartbeat_period = std::chrono::milliseconds(get_parameter("period").as_int());
+
+    // If the period is specified, compute the minimum and maximum frequencies for diagnostics
+    // By default set the minimum frequency of heartbeat to desired one - 0.05 Hz
+    diag_updater_min_freq_ = (1000 / heartbeat_period.count()) - 0.05;
+
+    // By default set the maximum frequency of heartbeat to desired one + 0.5 Hz
+    diag_updater_max_freq_ = (1000 / heartbeat_period.count()) + 0.5;
   } catch (...) {
     RCLCPP_WARN(this->get_logger(),
       "period is not specified, using default value of %ldms",
