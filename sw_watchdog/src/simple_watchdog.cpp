@@ -17,7 +17,6 @@
 // limitations under the License.
 
 #include <chrono>
-#include <atomic>
 #include <iostream>
 
 #include "rclcpp/rclcpp.hpp"
@@ -65,7 +64,7 @@ namespace sw_watchdog
 SW_WATCHDOG_PUBLIC
 SimpleWatchdog::SimpleWatchdog(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("simple_watchdog", options),
-  autostart_(false), enable_pub_(false), topic_name_(DEFAULT_TOPIC_NAME), qos_profile_(10)
+  autostart_(false), enable_pub_(false), topic_name_(DEFAULT_TOPIC_NAME)
 {
   // Parse node arguments
   const std::vector<std::string> & args = this->get_node_options().arguments();
@@ -82,8 +81,12 @@ SimpleWatchdog::SimpleWatchdog(const rclcpp::NodeOptions & options)
     std::exit(0);
   }
 
+  // Make sure the lease is more than zero.
+  auto provided_lease = std::max(1ul, std::stoul(args[1]));
+
   // Lease duration must be >= heartbeat's lease duration
-  lease_duration_ = std::chrono::milliseconds(std::stoul(args[1]));
+  lease_duration_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::milliseconds(provided_lease));
 
   if (rcutils_cli_option_exist(&cargs[0], &cargs[0] + cargs.size(), OPTION_AUTO_START)) {
     autostart_ = true;
@@ -128,33 +131,13 @@ NodeCallback SimpleWatchdog::on_configure(
   const rclcpp_lifecycle::State &)
 {
   // Initialize and configure node
-  qos_profile_
-  .liveliness(RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC)
-  .liveliness_lease_duration(lease_duration_);
-
-  heartbeat_sub_options_.event_callbacks.liveliness_callback =
-    [this](rclcpp::QOSLivelinessChangedInfo & event) -> void {
-      printf("Reader Liveliness changed event: \n");
-      printf("  alive_count: %d\n", event.alive_count);
-      printf("  not_alive_count: %d\n", event.not_alive_count);
-      printf("  alive_count_change: %d\n", event.alive_count_change);
-      printf("  not_alive_count_change: %d\n", event.not_alive_count_change);
-      if (event.alive_count == 0) {
-        publish_status(1);
-        // Transition lifecycle to deactivated state if not keep_active
-        if (!keep_active_) {
-          deactivate();
-        }
-      } else {
-        publish_status(0);
-      }
-    };
 
   if (enable_pub_) {
-    // QoS history_depth
-    status_pub_ = create_publisher<sw_watchdog_msgs::msg::Status>(status_topic_name_, 1);
+    // Keep the last message so that new subscribers will get the
+    // current status value.
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).transient_local();
+    status_pub_ = create_publisher<sw_watchdog_msgs::msg::Status>(status_topic_name_, qos);
   }
-
   RCUTILS_LOG_INFO_NAMED(get_name(), "on_configure() is called.");
   return NodeCallback::SUCCESS;
 }
@@ -165,13 +148,41 @@ NodeCallback SimpleWatchdog::on_activate(
   if (!heartbeat_sub_) {
     heartbeat_sub_ = create_subscription<sw_watchdog_msgs::msg::Heartbeat>(
       topic_name_,
-      qos_profile_,
+      1,
       [this](const typename sw_watchdog_msgs::msg::Heartbeat::SharedPtr msg) -> void {
-        RCLCPP_INFO(
+        if (last_heartbeat_.nanoseconds() == 0) {
+          publish_status(0);
+        }
+
+        last_heartbeat_ = rclcpp::Time(msg->header.stamp);
+        RCLCPP_DEBUG(
           get_logger(), "Watchdog raised, heartbeat sent at [%d.x]", msg->header.stamp.sec);
-      },
-      heartbeat_sub_options_);
+      });
   }
+
+  // Reset existing timer and start it to check the heartbeat is received within lease_duration_
+  if (timer_) {
+    timer_.reset();
+    timer_ = nullptr;
+  }
+
+  last_heartbeat_ = rclcpp::Time(0);
+
+  // Check the heartbeat more often than lease duration to catch missed heartbeats.
+  timer_ = this->create_timer(lease_duration_ / 10, [&](){
+        if (last_heartbeat_.nanoseconds() == 0) {
+          return;
+        }
+
+        bool ok = (this->get_clock()->now() - last_heartbeat_) < lease_duration_;
+
+        if (!ok) {
+          publish_status(1);
+          if (!keep_active_) {
+            deactivate();
+          }
+        }
+  });
 
   // Starting from this point, all messages are sent to the network.
   if (enable_pub_) {
@@ -189,6 +200,9 @@ NodeCallback SimpleWatchdog::on_deactivate(
   heartbeat_sub_.reset();  // XXX there does not seem to be a 'deactivate' for subscribers.
   heartbeat_sub_ = nullptr;
 
+  timer_.reset();
+  timer_ = nullptr;
+
   // Starting from this point, all messages are no longer sent to the network.
   if (enable_pub_) {
     status_pub_->on_deactivate();
@@ -202,6 +216,9 @@ NodeCallback SimpleWatchdog::on_deactivate(
 NodeCallback SimpleWatchdog::on_cleanup(
   const rclcpp_lifecycle::State &)
 {
+  timer_.reset();
+  timer_ = nullptr;
+
   status_pub_.reset();
   RCUTILS_LOG_INFO_NAMED(get_name(), "on cleanup is called.");
 
@@ -211,6 +228,9 @@ NodeCallback SimpleWatchdog::on_cleanup(
 NodeCallback SimpleWatchdog::on_shutdown(
   const rclcpp_lifecycle::State & state)
 {
+  timer_.reset();
+  timer_ = nullptr;
+
   heartbeat_sub_.reset();
   heartbeat_sub_ = nullptr;
   status_pub_.reset();

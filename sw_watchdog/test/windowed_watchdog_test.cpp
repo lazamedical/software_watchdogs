@@ -28,11 +28,11 @@ public:
   TestPublisher()
   : Node("generic_node") {}
 
-  void sendHeartbeat(sw_watchdog_msgs::msg::Heartbeat messageContent, rclcpp::QoS qos)
+  void sendHeartbeat(sw_watchdog_msgs::msg::Heartbeat messageContent)
   {
     if (!HeartbeatPublisher) {
       HeartbeatPublisher =
-        this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>("heartbeat", qos);
+        this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>("heartbeat", 1);
     }
 
     HeartbeatPublisher->publish(messageContent);
@@ -130,13 +130,7 @@ TEST_P(WindowedWatchdogTest, BeatingTest)
 
   message.header.stamp = tester->get_clock()->now();
 
-  rclcpp::QoS qos_profile(1);
-  qos_profile
-  .liveliness(RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC)
-  .liveliness_lease_duration(std::chrono::milliseconds(300))
-  .deadline(std::chrono::milliseconds(100));
-
-  tester->sendHeartbeat(message, qos_profile);
+  tester->sendHeartbeat(message);
 
   for (int i = 0; i < 20; ++i) {
     testing::internal::CaptureStderr();
@@ -154,7 +148,7 @@ TEST_P(WindowedWatchdogTest, BeatingTest)
   executor.remove_node(tester);
 
   expectedStateReached = false;
-  for (int i = 0; i < 20; ++i) {
+  for (int i = 0; i < 50; ++i) {
     testing::internal::CaptureStderr();
     using namespace std::chrono_literals;
     executor.spin_once(100ms);

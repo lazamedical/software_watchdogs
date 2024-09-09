@@ -26,8 +26,8 @@
 #include "sw_watchdog/visibility_control.h"
 #include "sw_watchdog/simple_heartbeat.hpp"
 
-// Buffer added to heartbeat to define lease.
-constexpr std::chrono::milliseconds LEASE_DELTA = std::chrono::milliseconds(20);
+// Default period if no one specified in parameter
+constexpr std::chrono::milliseconds DEFAULT_PERIOD = std::chrono::milliseconds(200);
 
 namespace
 {
@@ -64,23 +64,14 @@ SimpleHeartbeat::SimpleHeartbeat(rclcpp::NodeOptions options)
     std::exit(0);
   }
 
-  std::chrono::milliseconds heartbeat_period;
+  std::chrono::milliseconds heartbeat_period = DEFAULT_PERIOD;
   try {
     heartbeat_period = std::chrono::milliseconds(get_parameter("period").as_int());
   } catch (...) {
-    print_usage();
-    // TODO(anybody): Update the rclcpp_components template to be able to handle
-    // exceptions. Raise one here, so stack unwinding happens gracefully.
-    std::exit(-1);
+    RCLCPP_WARN(this->get_logger(),
+      "period is not specified, using default value of %ldms",
+      DEFAULT_PERIOD.count());
   }
-
-  // The granted lease is essentially infite here, i.e., only reader/watchdog will notify
-  // violations. XXX causes segfault for cyclone dds, hence pass explicit lease life > heartbeat.
-  rclcpp::QoS qos_profile(1);
-  qos_profile
-  .liveliness(RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC)
-  .liveliness_lease_duration(heartbeat_period + LEASE_DELTA)
-  .deadline(heartbeat_period + LEASE_DELTA);
 
   // assert liveliness on the 'heartbeat' topic with diagnostics
   updater_ = std::make_unique<diagnostic_updater::Updater>(this);
@@ -89,12 +80,7 @@ SimpleHeartbeat::SimpleHeartbeat(rclcpp::NodeOptions options)
   diagnostic_updater::FrequencyStatusParam freq_param(
     &diag_updater_min_freq_, &diag_updater_max_freq_, 0.01, 2);
 
-  // assert liveliness on the 'heartbeat' topic
-  publisher_ = this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>(
-    "heartbeat",
-    qos_profile
-  );
-
+  publisher_ = this->create_publisher<sw_watchdog_msgs::msg::Heartbeat>("heartbeat", 1);
   diag_pub_ = std::make_unique<diag_pub_type>(
     publisher_, *updater_, freq_param,
     diagnostic_updater::TimeStampStatusParam());
@@ -108,7 +94,7 @@ void SimpleHeartbeat::timer_callback()
   auto message = sw_watchdog_msgs::msg::Heartbeat();
   rclcpp::Time now = this->get_clock()->now();
   message.header.stamp = now;
-  RCLCPP_INFO(this->get_logger(), "Publishing heartbeat, sent at [%f]", now.seconds());
+  RCLCPP_DEBUG(this->get_logger(), "Publishing heartbeat, sent at [%f]", now.seconds());
   diag_pub_->publish(message);
 }
 
