@@ -5,11 +5,11 @@
 -->
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>navecho_diagnostics</name>
+  <name>heartbeat_diagnostics</name>
   <version>0.0.0</version>
-  <description>Diagnostic aggregator,configuration, and launch files for NavEcho</description>
-  <maintainer email="matus@todo.todo">matus</maintainer>
-  <license>Proprietary</license>
+  <description>Diagnostic aggregator,configuration, and launch files for sw_watchdog</description>
+  <maintainer email="matus@lazamedical.com">Matus</maintainer>
+  <license>Apache License 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -17,10 +17,6 @@
   
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <test_depend>ament_cmake_flake8</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_cmake_pep257</test_depend>
-  <test_depend>ament_pep257</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
