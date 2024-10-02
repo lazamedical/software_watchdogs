@@ -12,20 +12,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-20.04 ]
-        ros_distribution: [ rolling ]
+        os: [ ubuntu-24.04 ]
+        ros_distribution: [ jazzy ]
     steps:
     - uses: actions/checkout@v2
-    - uses: ros-tooling/setup-ros@0.1.2
+    - uses: ros-tooling/setup-ros@0.7.9
       with:
         required-ros-distributions: ${{ matrix.ros_distribution }}
-    - uses : ros-tooling/action-ros-ci@0.1.0
+    - uses : MatusLaza/action-ros-ci@master
       with:
-        package-name: "sw_watchdog"
         target-ros2-distro: ${{ matrix.ros_distribution }}
         vcs-repo-file-url: ""
-        colcon-mixin-name: coverage-gcc
+        coverage-include-pattern: "'*/ros_ws/src/*'"
+        colcon-defaults: |
+          {
+              "build": {
+                  "mixin": [
+                      "coverage-gcc"
+                  ]
+              }
+          }
         colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+    - uses: actions/upload-artifact@v4.4.0
+      with:
+        name: coverage-report
+        path: ros_ws/coverage_report
+      if: always()
     - uses: codecov/codecov-action@v1
       with:
         file: ros_ws/lcov/total_coverage.info
